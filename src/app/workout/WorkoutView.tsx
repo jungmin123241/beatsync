@@ -84,6 +84,8 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
     if (prevSongId === null || prevSongId === song.spotifyTrackId) {
       return;
     }
+    // 이전 곡의 저장 실패 문구가 새 곡 아래에 남아 오해를 주지 않도록 지운다
+    setError(false);
     setShowChangeNotice(true);
     const timer = setTimeout(() => setShowChangeNotice(false), 4000);
     return () => clearTimeout(timer);

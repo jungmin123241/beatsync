@@ -11,7 +11,8 @@ import WorkoutView from "./WorkoutView";
 // - 곡이 바뀌면 안내 메시지 표시 (9번)
 export default async function WorkoutPage() {
   const session = await auth();
-  if (!session) {
+  // accessToken이 없으면 토큰 갱신 실패 상태 — 저장이 계속 실패하므로 재로그인시킨다
+  if (!session?.accessToken) {
     redirect("/");
   }
 

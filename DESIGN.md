@@ -162,11 +162,12 @@ Spotify와 주고받는 요청은 전부 브라우저가 아니라 **Next.js API
 
 | Method | 경로 | 설명 |
 |---|---|---|
-| GET | `/api/playlists` | 로그인한 사용자의 Spotify 플레이리스트 목록 조회 (③ 화면에서 사용) |
 | POST | `/api/playlists/[id]/tracks` | 지정 플레이리스트에 트랙 추가 (④ "저장" 버튼) — 요청 본문에 `spotifyTrackId` 포함 |
 
-중복 저장 방지는 API 조회 없이 `beatsync.savedTracks`(localStorage) 기록만으로 판단한다.
-그래서 트랙 목록 조회용 GET은 두지 않는다.
+API Route는 이 하나뿐이다. 이유는 두 가지다.
+
+- **플레이리스트 목록 조회용 GET을 두지 않는다.** ③ 화면이 서버 컴포넌트(`src/app/setup/page.tsx`)라서 `getUserPlaylists()`를 서버에서 직접 부르면 된다. 별도 라우트를 두면 브라우저를 한 번 거쳐 돌아가는 셈이라 불필요하다.
+- **트랙 목록 조회용 GET도 두지 않는다.** 중복 저장 방지는 `beatsync.savedTracks`(localStorage) 기록만으로 판단한다.
 
 **플레이리스트 목록은 "저장 가능한 것"만 내려준다.** Spotify는 본인 소유이거나
 공동 작업(collaborative)으로 설정된 플레이리스트에만 곡 추가를 허용하고, 그 외에는

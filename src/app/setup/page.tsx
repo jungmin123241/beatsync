@@ -7,7 +7,9 @@ import SetupForm from "./SetupForm";
 // 로그인 안 된 상태로 접근하면 로그인 화면으로 되돌린다
 export default async function SetupPage() {
   const session = await auth();
-  if (!session) {
+  // accessToken이 없으면 토큰 갱신이 실패한 상태다. 이때는 재시도해도 계속 실패하므로
+  // 안내 문구로 붙잡아두지 말고 로그인 화면으로 보내 재로그인시킨다 (DESIGN.md 6번)
+  if (!session?.accessToken) {
     redirect("/");
   }
 
@@ -16,7 +18,7 @@ export default async function SetupPage() {
   let playlists: Awaited<ReturnType<typeof getUserPlaylists>> = [];
   let loadError = false;
   try {
-    playlists = await getUserPlaylists(session.accessToken!);
+    playlists = await getUserPlaylists(session.accessToken);
   } catch {
     loadError = true;
   }
