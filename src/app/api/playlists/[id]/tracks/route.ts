@@ -31,7 +31,12 @@ export async function POST(
   );
 
   if (!res.ok) {
-    return NextResponse.json({ error: "SAVE_FAILED" }, { status: 502 });
+    const body = await res.text().catch(() => "");
+    console.error("[playlists/tracks] Spotify 저장 실패", res.status, body);
+    return NextResponse.json(
+      { error: "SAVE_FAILED", spotifyStatus: res.status },
+      { status: 502 },
+    );
   }
 
   return NextResponse.json({ ok: true });
