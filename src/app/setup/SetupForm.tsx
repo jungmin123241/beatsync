@@ -80,7 +80,7 @@ export default function SetupForm({ playlists, loadError }: SetupFormProps) {
             placeholder="예: 러닝"
             value={workoutName}
             onChange={(e) => setWorkoutName(e.target.value)}
-            className="w-full rounded-lg border border-foreground/20 px-4 py-3"
+            className="w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-black placeholder:text-black/40"
           />
         </div>
 
@@ -102,7 +102,7 @@ export default function SetupForm({ playlists, loadError }: SetupFormProps) {
               required
               value={playlistId}
               onChange={(e) => setPlaylistId(e.target.value)}
-              className="w-full rounded-lg border border-foreground/20 px-4 py-3"
+              className="w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-black"
             >
               <option value="" disabled>
                 플레이리스트 선택

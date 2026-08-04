@@ -28,7 +28,7 @@ export default function OnboardingForm() {
         placeholder="나이"
         value={age}
         onChange={(e) => setAge(e.target.value)}
-        className="w-full rounded-lg border border-foreground/20 px-4 py-3 text-center text-lg"
+        className="w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-center text-lg text-black placeholder:text-black/40"
       />
 
       {error && <p className="text-center text-sm text-red-500">{error}</p>}
