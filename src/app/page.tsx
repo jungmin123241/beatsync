@@ -16,7 +16,7 @@ export default function LoginPage() {
       >
         <button
           type="submit"
-          className="w-full rounded-full bg-foreground py-3 font-medium text-background"
+          className="w-full rounded-full bg-accent py-3 font-medium text-accent-foreground"
         >
           Spotify로 시작하기
         </button>

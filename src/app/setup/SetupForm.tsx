@@ -121,7 +121,7 @@ export default function SetupForm({ playlists, loadError }: SetupFormProps) {
         <button
           type="submit"
           disabled={loadError || playlists.length === 0}
-          className="w-full rounded-full bg-foreground py-3 font-medium text-background disabled:opacity-40"
+          className="w-full rounded-full bg-accent py-3 font-medium text-accent-foreground disabled:opacity-40"
         >
           운동 시작
         </button>

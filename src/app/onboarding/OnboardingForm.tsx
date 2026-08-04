@@ -35,7 +35,7 @@ export default function OnboardingForm() {
 
       <button
         type="submit"
-        className="w-full rounded-full bg-foreground py-3 font-medium text-background"
+        className="w-full rounded-full bg-accent py-3 font-medium text-accent-foreground"
       >
         다음
       </button>

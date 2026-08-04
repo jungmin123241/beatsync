@@ -115,11 +115,11 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
   return (
     <>
       <section className="flex flex-col items-center gap-2">
-        <p className="text-4xl font-bold">❤ {heartRate} bpm</p>
+        <p className="text-4xl font-bold text-accent">❤ {heartRate} bpm</p>
       </section>
 
       {showChangeNotice && (
-        <div className="rounded-lg border border-foreground/20 px-4 py-2 text-center text-sm">
+        <div className="rounded-lg border border-accent px-4 py-2 text-center text-sm text-accent">
           ♪ 곡이 바뀌었어요
         </div>
       )}
@@ -135,7 +135,7 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
           type="button"
           onClick={handleSave}
           disabled={saving || saved}
-          className="w-full rounded-full bg-foreground py-3 font-medium text-background disabled:opacity-40"
+          className="w-full rounded-full bg-accent py-3 font-medium text-accent-foreground disabled:opacity-40"
         >
           {saved ? "저장됨" : saving ? "저장 중..." : "저장"}
         </button>
