@@ -50,7 +50,10 @@ export const authConfig: NextAuthConfig = {
       clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
       authorization: {
         url: "https://accounts.spotify.com/authorize",
-        params: { scope: SPOTIFY_SCOPES },
+        // show_dialog: 이전에 좁은 권한으로 승인한 기록이 남아 있으면 Spotify가
+        // 동의 화면을 건너뛰고 옛 권한을 그대로 재발급한다. 매번 동의 화면을
+        // 띄워 위 3가지 권한을 확실히 다시 받도록 강제한다.
+        params: { scope: SPOTIFY_SCOPES, show_dialog: "true" },
       },
       // 시크릿 키를 가진 서버 앱이므로 PKCE 대신 표준 state 검증을 쓴다.
       checks: ["state"],
@@ -62,6 +65,8 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, account }) {
       // 최초 로그인: Spotify가 내려준 토큰 3종을 그대로 저장
       if (account) {
+        // 저장(쓰기) 권한이 실제로 부여됐는지 확인하기 위한 진단용 로깅
+        console.log("[auth] Spotify가 부여한 권한 범위:", account.scope);
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.accessTokenExpires = (account.expires_at ?? 0) * 1000;
