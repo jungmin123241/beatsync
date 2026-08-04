@@ -94,8 +94,9 @@ export default function SetupForm({ playlists, loadError }: SetupFormProps) {
             </p>
           ) : playlists.length === 0 ? (
             <p className="text-sm text-foreground/60">
-              Spotify 계정에 플레이리스트가 없어요. 먼저 Spotify에서 하나
-              만들어주세요.
+              직접 만든(또는 공동 작업) 플레이리스트가 없어요. Spotify에서
+              하나 만들어주세요. (팔로우만 한 플레이리스트는 곡을 추가할 수
+              없어 목록에 나오지 않아요)
             </p>
           ) : (
             <select

@@ -7,24 +7,47 @@ export type Playlist = {
 };
 
 type SpotifyPlaylistsResponse = {
-  items: { id: string; name: string }[];
+  items: {
+    id: string;
+    name: string;
+    collaborative: boolean;
+    owner: { id: string };
+  }[];
 };
 
+type SpotifyMeResponse = {
+  id: string;
+};
+
+// Spotify는 본인 소유이거나 공동 작업(collaborative) 설정된 플레이리스트에만
+// 트랙 추가를 허용한다. 그 외 플레이리스트를 선택하면 저장 시 403이 나므로,
+// 처음부터 저장 가능한 플레이리스트만 걸러서 보여준다.
 export async function getUserPlaylists(
   accessToken: string,
 ): Promise<Playlist[]> {
-  const res = await fetch(
-    "https://api.spotify.com/v1/me/playlists?limit=50",
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    },
-  );
+  const headers = { Authorization: `Bearer ${accessToken}` };
 
-  if (!res.ok) {
-    throw new Error(`Spotify 플레이리스트 조회 실패 (status: ${res.status})`);
+  const [meRes, playlistsRes] = await Promise.all([
+    fetch("https://api.spotify.com/v1/me", { headers, cache: "no-store" }),
+    fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
+      headers,
+      cache: "no-store",
+    }),
+  ]);
+
+  if (!meRes.ok) {
+    throw new Error(`Spotify 사용자 정보 조회 실패 (status: ${meRes.status})`);
+  }
+  if (!playlistsRes.ok) {
+    throw new Error(
+      `Spotify 플레이리스트 조회 실패 (status: ${playlistsRes.status})`,
+    );
   }
 
-  const data = (await res.json()) as SpotifyPlaylistsResponse;
-  return data.items.map((item) => ({ id: item.id, name: item.name }));
+  const me = (await meRes.json()) as SpotifyMeResponse;
+  const data = (await playlistsRes.json()) as SpotifyPlaylistsResponse;
+
+  return data.items
+    .filter((item) => item.collaborative || item.owner.id === me.id)
+    .map((item) => ({ id: item.id, name: item.name }));
 }
