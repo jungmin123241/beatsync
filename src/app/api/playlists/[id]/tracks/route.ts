@@ -31,6 +31,8 @@ export async function POST(
   );
 
   if (!res.ok) {
+    // 화면에는 일반 안내만 띄우므로(DESIGN.md 6번), 실패 원인은 서버 로그로 남긴다.
+    // 403이면 곡 추가 권한이 없는 플레이리스트이거나 Spotify 계정 상태 문제다.
     const body = await res.text().catch(() => "");
     console.error("[playlists/tracks] Spotify 저장 실패", res.status, body);
     return NextResponse.json(

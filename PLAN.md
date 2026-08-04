@@ -11,21 +11,26 @@ PRD.md 6번 범위에 정의된 세 가지 기능(계정 연동, 심박수 기�
 - [x] PRD 5번의 세 기능(0. 계정 연동, 1. 곡 추천·저장, 2. 곡 변경 안내)이 모두 동작한다
 - [x] Spotify 로그인 → 나이 입력 → 운동 종류 입력·플레이리스트 지정 → 가상 심박수로 곡 추천 → 저장 → 곡 변경 안내까지, PRD 4번 이용 흐름이 끊김 없이 이어진다
 - [x] 추천 곡이 현재 심박수와 유사한 BPM으로 선택된다
-- [ ] "저장" 버튼으로 Spotify 플레이리스트에 곡이 추가된다 — **미검증(외부 요인으로 막힘, 아래 참고)**
+- [x] "저장" 버튼으로 Spotify 플레이리스트에 곡이 추가된다 — 차단 요인 해소됨(아래 참고)
 - [x] Apple Music 등은 구현하지 않는다
 - [x] Vercel에 배포되어 실제 URL로 접속·시연 가능하다 — https://beatsync-lemon.vercel.app
 
-### 남은 문제: 곡 저장이 Spotify에서 403으로 막힘
+### 기록: 곡 저장이 한동안 403으로 막혔던 건 (2026-08-04 해소)
 
-코드가 아니라 Spotify 쪽 제약이다. 저장 요청 시 Spotify가 `403 Forbidden`을 돌려준다.
+코드 문제가 아니라 Spotify 쪽 제약이었다. 저장 요청에 Spotify가 `403 Forbidden`을 돌려줬다.
 
-확인한 사실:
-- 로그인 시 부여된 권한은 정상 (`playlist-read-private playlist-modify-private playlist-modify-public`) — 권한 부족이 아님
-- 플레이리스트 목록은 본인 소유·공동작업 항목만 보이도록 걸러 둠 — 소유권 문제가 아님
-- 읽기(플레이리스트 조회)는 정상 동작 — 토큰 자체는 정상
-- 앱 토큰으로 Spotify API를 직접 호출하면 `"Active premium subscription required for the owner of the app."` 응답
+원인을 좁혀간 과정 — 후보를 하나씩 제거했다:
+- 로그인 시 부여된 권한은 정상 (`playlist-read-private playlist-modify-private playlist-modify-public`) → 권한 부족 아님
+- 대상 플레이리스트는 본인 소유가 맞음(`owner.id` 직접 조회로 확인) → 소유권 문제 아님
+- 읽기(플레이리스트 조회)는 정상 동작 → 토큰 자체는 정상
+- 앱 토큰으로 Spotify API를 직접 호출하면 `"Active premium subscription required for the owner of the app."` 응답 → **이것이 원인**
 
-즉 **앱 소유자 계정의 Premium 상태가 아직 반영되지 않은 것**이 원인이며, Spotify 안내상 반영에 수 시간이 걸린다. 반영되면 별도 코드 수정 없이 저장이 동작해야 한다. (확인 시 이 항목을 체크로 바꿀 것)
+즉 **앱 소유자 계정의 Premium 상태가 Spotify에 반영되기까지 걸린 지연**이 원인이었다.
+같은 날 21:41 기준 반영이 확인되어(막혔던 API가 전부 200 응답) 코드 수정 없이 해소됐다.
+
+이 과정에서 얻은 부수 효과 두 가지는 그대로 남겨뒀다.
+- 플레이리스트 목록을 본인 소유·공동작업 항목만 보이도록 필터링 (원인은 아니었지만 실제로 저장 불가한 선택지를 없애줌)
+- 저장 실패 시 Spotify 응답 상태·본문을 서버 로그에 남기는 처리
 
 ## 작업 순서
 
@@ -42,10 +47,8 @@ PRD.md 6번 범위에 정의된 세 가지 기능(계정 연동, 심박수 기�
 - [x] 9. 심박수가 바뀌면 즉시 추천 - 곡 변경 시 안내 메시지 표시
 - [x] 10. Vercel 배포 및 환경변수 설정
 
-## 정리할 것 (배포 후 남은 임시 코드)
+## 정리할 것
 
-저장 실패 원인을 찾으려고 넣은 진단용 코드가 남아 있다. 원인이 해소되면 되돌린다.
-
-- `src/auth.ts` — 부여된 권한 범위를 찍는 `console.log`, 매번 동의 화면을 띄우는 `show_dialog: "true"`
-- `src/app/api/playlists/[id]/tracks/route.ts` — Spotify 응답 본문을 찍는 `console.error` (원인 파악에 유용해 남겨둘지 판단 필요)
-- `trash-can/` — 폐기한 `middleware.ts`, `HeartRateDisplay.tsx` (사용자 확인 후 삭제)
+- [x] `src/auth.ts` — 진단용 `console.log`(권한 범위), 매번 동의 화면을 띄우던 `show_dialog: "true"` 제거
+- [x] `src/app/api/playlists/[id]/tracks/route.ts` — 실패 로깅은 **유지**. 임시 진단용이 아니라, 화면에 일반 안내만 띄우는 구조상 원인을 남길 곳이 서버 로그뿐이라서다
+- [ ] `trash-can/` — 폐기한 `middleware.ts`, `HeartRateDisplay.tsx`, `api-playlists-route.ts` (사용자가 확인 후 직접 삭제)
