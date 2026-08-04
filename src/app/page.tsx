@@ -5,7 +5,7 @@ import { signIn } from "@/auth";
 export default function LoginPage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-10 px-6 text-center">
-      <h1 className="text-3xl font-bold tracking-tight">비트싱크</h1>
+      <h1 className="text-3xl font-bold tracking-tight">BeatSync</h1>
 
       <form
         action={async () => {

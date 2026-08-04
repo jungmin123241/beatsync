@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "비트싱크",
+  title: "BeatSync",
   description: "심박수에 맞춰 음악을 추천해주는 서비스",
 };
 
