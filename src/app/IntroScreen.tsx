@@ -23,6 +23,10 @@ export default function IntroScreen({ onGetStarted }: IntroScreenProps) {
 
   function handleGetStarted() {
     if (isLeaving) return;
+    // iOS 스타일의 가벼운 탭 햅틱 — 지원하지 않는 브라우저(iOS Safari 등)에서는 조용히 무시된다
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(8);
+    }
     setIsLeaving(true);
     // 버튼이 살짝 눌렸다가 화면이 페이드아웃되는 것을 보여준 뒤 실제 이동을 시작한다
     // (globals.css의 transition-opacity duration과 맞춘 값).
@@ -82,8 +86,10 @@ export default function IntroScreen({ onGetStarted }: IntroScreenProps) {
             type="button"
             onClick={handleGetStarted}
             disabled={isPending || isLeaving}
-            className={`w-full rounded-full bg-accent py-4 text-lg font-semibold text-accent-foreground shadow-[0_0_32px_-8px_var(--accent)] transition-transform duration-200 ease-out disabled:opacity-60 ${
-              isLeaving ? "scale-95" : "scale-100"
+            className={`w-full rounded-full bg-accent py-4 text-lg font-semibold text-accent-foreground shadow-[0_0_32px_-8px_var(--accent)] transition-transform duration-150 ease-out active:scale-[0.96] disabled:opacity-60 ${
+              isLeaving
+                ? "scale-95"
+                : "motion-safe:animate-intro-cta-breathe motion-reduce:scale-100"
             }`}
           >
             Get Started →
@@ -94,20 +100,31 @@ export default function IntroScreen({ onGetStarted }: IntroScreenProps) {
   );
 }
 
-// 아주 느리게 움직이는 배경 그라디언트 + 은은한 그린 글로우 원 두 개.
-// "숨쉬듯" 느껴지도록 24초 주기로 아주 살짝만 움직인다.
+// 아주 느리게 움직이는 배경 그라디언트 + 은은한 그린 글로우 원 두 개,
+// 그리고 화면 하단에서 숨쉬듯 커졌다 작아지는 생체 신호 느낌의 글로우 한 겹.
+// 전부 opacity/transform만 사용해 GPU 합성으로 처리된다 (레이아웃 재계산 없음).
 function IntroBackground() {
   return (
-    <div
-      aria-hidden
-      className="motion-safe:animate-intro-bg-drift pointer-events-none absolute inset-0 -z-10"
-      style={{
-        backgroundImage:
-          "radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%), radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 50%)",
-        backgroundColor: "var(--background)",
-        backgroundSize: "140% 140%, 140% 140%",
-      }}
-    />
+    <>
+      <div
+        aria-hidden
+        className="motion-safe:animate-intro-bg-drift pointer-events-none absolute inset-0 -z-10"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 55%), radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 50%)",
+          backgroundColor: "var(--background)",
+          backgroundSize: "140% 140%, 140% 140%",
+        }}
+      />
+      <div
+        aria-hidden
+        className="motion-safe:animate-intro-glow-breathe pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-2/3 origin-bottom motion-reduce:opacity-10"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse at 50% 100%, var(--accent), transparent 65%)",
+        }}
+      />
+    </>
   );
 }
 
