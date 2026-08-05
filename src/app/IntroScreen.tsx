@@ -41,9 +41,9 @@ export default function IntroScreen({ onGetStarted }: IntroScreenProps) {
     >
       <IntroBackground />
 
-      <div className="relative flex flex-1 flex-col px-6 pt-[max(env(safe-area-inset-top),2rem)] pb-[max(env(safe-area-inset-bottom),1.5rem)]">
-        {/* 상단: 로고 */}
-        <div className="motion-safe:animate-intro-logo flex flex-col items-center gap-2 pt-4 motion-reduce:opacity-100">
+      <div className="relative flex flex-1 flex-col justify-center gap-12 px-6 pt-[max(env(safe-area-inset-top),2rem)] pb-[max(env(safe-area-inset-bottom),1.5rem)]">
+        {/* 로고 */}
+        <div className="motion-safe:animate-intro-logo flex flex-col items-center gap-2 motion-reduce:opacity-100">
           <div className="relative flex h-14 w-14 items-center justify-center">
             <span className="motion-safe:animate-intro-ring-pulse absolute inset-0 rounded-full bg-accent/40 blur-[2px] motion-reduce:hidden" />
             <span className="relative flex h-14 w-14 items-center justify-center rounded-full border border-accent/30 bg-accent/10 text-2xl">
@@ -55,8 +55,8 @@ export default function IntroScreen({ onGetStarted }: IntroScreenProps) {
           </p>
         </div>
 
-        {/* 중앙: 헤어라인 → 웨이브폼 → 헤드라인 → 설명 */}
-        <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
+        {/* 헤어라인 → 웨이브폼 → 헤드라인 → 설명 */}
+        <div className="flex flex-col items-center gap-8 text-center">
           <HeartbeatToWaveform />
 
           <div className="motion-safe:animate-intro-headline motion-reduce:opacity-100">
@@ -76,8 +76,8 @@ export default function IntroScreen({ onGetStarted }: IntroScreenProps) {
           </p>
         </div>
 
-        {/* 하단: CTA */}
-        <div className="motion-safe:animate-intro-cta pb-2 motion-reduce:opacity-100">
+        {/* CTA */}
+        <div className="motion-safe:animate-intro-cta motion-reduce:opacity-100">
           <button
             type="button"
             onClick={handleGetStarted}
