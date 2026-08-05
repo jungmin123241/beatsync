@@ -291,12 +291,38 @@ function PulseRing({ durationMs }: { durationMs: number }) {
   );
 }
 
-// 왼쪽에서 오른쪽으로 끊김없이 흐르는 ECG 라인. 서로 살짝 다른 두 파형(A·B)을
-// 번갈아 이어붙여 완전히 똑같은 모양이 반복되지 않게 하고, 그 한 쌍의 폭만큼
-// translateX로 반복 이동시켜 무한 스크롤처럼 보이게 한다. 속도는 심박수에 연결된다.
+// ECG 파형 후보 — 서로 다른 4가지 심장박동 모양. 두 개를 무작위로 뽑아 짝지어 쓴다.
+const ECG_TILE_VARIANTS = [
+  "M0,20 L40,20 L50,6 L58,34 L65,14 L72,20 L200,20",
+  "M0,20 L36,20 L47,11 L56,31 L64,17 L72,20 L200,20",
+  "M0,20 L44,20 L54,4 L61,36 L68,10 L74,20 L200,20",
+  "M0,20 L38,20 L49,13 L57,28 L63,20 L70,20 L200,20",
+] as const;
+
+function pickRandomTilePair(): [string, string] {
+  const pool = [...ECG_TILE_VARIANTS];
+  const [first] = pool.splice(Math.floor(Math.random() * pool.length), 1);
+  const second = pool[Math.floor(Math.random() * pool.length)];
+  return [first, second];
+}
+
+// 왼쪽에서 오른쪽으로 끊김없이 흐르는 ECG 라인. CSS로 SVG를 통째로 밀어서 무한
+// 스크롤처럼 보이게 하는 방식이라, 루프가 매끄러우려면 파형이 정확히 2개 단위로
+// 짝을 이뤄 반복돼야 한다(A,B,A,B). 그 "짝"을 화면에 들어올 때마다 무작위로 골라
+// 매번 다른 조합이 보이게 한다. 서버 렌더링과 첫 클라이언트 렌더링은 항상 같은
+// 값이어야 하이드레이션 불일치가 안 나므로, 고정 조합으로 그렸다가 마운트 직후에만
+// (클라이언트에서만 일어나는 일이라 안전하다) 무작위 조합으로 바꾼다.
 function HeartRateEcg({ durationMs }: { durationMs: number }) {
-  const tileA = "M0,20 L40,20 L50,6 L58,34 L65,14 L72,20 L200,20";
-  const tileB = "M0,20 L36,20 L47,11 L56,31 L64,17 L72,20 L200,20";
+  const [tiles, setTiles] = useState<[string, string]>([
+    ECG_TILE_VARIANTS[0],
+    ECG_TILE_VARIANTS[1],
+  ]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTiles(pickRandomTilePair());
+  }, []);
+
   const offsets = [0, 200, 400, 600];
   return (
     <div className="relative mt-2 h-8 w-48 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
@@ -309,7 +335,7 @@ function HeartRateEcg({ durationMs }: { durationMs: number }) {
         {offsets.map((x, i) => (
           <path
             key={x}
-            d={i % 2 === 0 ? tileA : tileB}
+            d={i % 2 === 0 ? tiles[0] : tiles[1]}
             transform={`translate(${x},0)`}
             fill="none"
             stroke="var(--accent)"
