@@ -151,25 +151,42 @@ body {
 
 /*
  * 운동 화면(WorkoutView) 전용 애니메이션 — 인트로 화면 토큰과는 완전히 분리했다.
- * 심박수 중심 링 펄스는 "한 번의 심장박동" 주기(60000ms / bpm)에 맞춰 재생 속도가
- * 바뀐다. 실제 duration 값은 --workout-pulse-duration 커스텀 프로퍼티로 각 요소에서
+ * 펄스 링·ECG 스크롤 둘 다 실제 심박수에 맞춰 재생 속도가 바뀐다. duration 값은
+ * --workout-pulse-duration / --workout-ecg-duration 커스텀 프로퍼티로 각 요소에서
  * 인라인으로 덮어쓴다(WorkoutView.tsx). 여기서는 기본값과 애니메이션 형태만 정의한다.
  */
 @theme inline {
   --animate-workout-pulse: workout-pulse-breathe var(--workout-pulse-duration, 1.2s)
     ease-in-out infinite;
-  --animate-workout-ecg-scroll: workout-ecg-scroll 3.2s linear infinite;
+  /* 두 번째 링: 조금 더 크게 퍼지고, 반 박자 늦게 시작해서 겹쳐 울리는 느낌을 준다 */
+  --animate-workout-pulse-secondary: workout-pulse-breathe-wide
+    var(--workout-pulse-duration, 1.2s) ease-in-out
+    calc(var(--workout-pulse-duration, 1.2s) / 2) infinite;
+  --animate-workout-ecg-scroll: workout-ecg-scroll var(--workout-ecg-duration, 2s) linear
+    infinite;
 }
 
 @keyframes workout-pulse-breathe {
   0%,
   100% {
-    opacity: 0.1;
+    opacity: 0.12;
     transform: scale(1);
   }
   50% {
-    opacity: 0.2;
-    transform: scale(1.05);
+    opacity: 0.26;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes workout-pulse-breathe-wide {
+  0%,
+  100% {
+    opacity: 0.08;
+    transform: scale(1.1);
+  }
+  50% {
+    opacity: 0.18;
+    transform: scale(1.22);
   }
 }
 
@@ -178,7 +195,8 @@ body {
     transform: translateX(0);
   }
   to {
-    /* HeartRateEcg의 SVG 타일 폭(200)만큼 정확히 이동해야 이음매 없이 반복된다 */
-    transform: translateX(-200px);
+    /* HeartRateEcg가 A·B 두 파형을 번갈아 그리므로, 그 한 쌍의 폭(400)만큼
+       정확히 이동해야 패턴이 바뀌면서도 이음매 없이 반복된다 */
+    transform: translateX(-400px);
   }
 }

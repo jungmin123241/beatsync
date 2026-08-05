@@ -99,27 +99,30 @@ function useAnimatedNumber(target: number): number {
   return display;
 }
 
-// 심박 펄스 링이 한 번 숨쉬는 데 걸리는 시간을 실제 "심장박동 1회" 주기에 가깝게
-// 계산한다. 다만 브리핑(고요하고 고급스러운 느낌)을 해치지 않도록 너무 빨라지지는
-// 않게 위아래로 값을 눌러준다. min/maxHeartRate는 이 사용자의 가상 심박수가
-// 실제로 오갈 수 있는 범위(useMockHeartRate와 동일한 40~90%)라서, 이 사람 기준으로
-// "지금이 상대적으로 낮은/높은 심박수인지"에 맞춰 속도가 붙는다.
-const PULSE_DURATION_SLOW_MS = 1600;
-const PULSE_DURATION_FAST_MS = 800;
-
-function pulseDurationMs(
+// 펄스 링·ECG 스크롤 속도를 이 사용자의 실제 가상 심박수 범위(useMockHeartRate와
+// 동일한 40~90% of maxHr) 안에서 "지금이 상대적으로 낮은/높은 심박수인지"에 맞춰
+// slowMs~fastMs 사이로 보간한다. 두 애니메이션 모두 같은 공식을 쓰되 속도 구간만 다르다.
+function bpmToDurationMs(
   heartRate: number,
   minHeartRate: number,
   maxHeartRate: number,
+  slowMs: number,
+  fastMs: number,
 ): number {
-  if (maxHeartRate <= minHeartRate) return PULSE_DURATION_SLOW_MS;
+  if (maxHeartRate <= minHeartRate) return slowMs;
   const ratio = (heartRate - minHeartRate) / (maxHeartRate - minHeartRate);
   const clamped = Math.min(1, Math.max(0, ratio));
-  return (
-    PULSE_DURATION_SLOW_MS -
-    clamped * (PULSE_DURATION_SLOW_MS - PULSE_DURATION_FAST_MS)
-  );
+  return slowMs - clamped * (slowMs - fastMs);
 }
+
+// 펄스 링: 가장 낮은 심박수에서도 화면이 죽어 보이지 않도록 전체적으로 빠르게 당겼다
+const PULSE_DURATION_SLOW_MS = 1100;
+const PULSE_DURATION_FAST_MS = 500;
+
+// ECG 스크롤: 예전엔 항상 3.2초 고정이라 실제 심박수와 무관하게 흘러 "정적"으로
+// 느껴졌다. 이제 펄스 링과 같은 방식으로 심박수에 직접 연결한다.
+const ECG_DURATION_SLOW_MS = 2400;
+const ECG_DURATION_FAST_MS = 1000;
 
 type Trend = "up" | "down" | "flat";
 
@@ -128,9 +131,23 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
   const displayedHeartRate = useAnimatedNumber(heartRate);
   const song = findNearestSong(heartRate, SAMPLE_SONGS);
 
-  // useMockHeartRate와 동일한 계산 — 펄스 속도를 이 사용자의 실제 가능 범위에 맞추기 위함
+  // useMockHeartRate와 동일한 계산 — 애니메이션 속도를 이 사용자의 실제 가능 범위에 맞추기 위함
   const minHeartRate = Math.round(maxHr * 0.4);
   const maxHeartRate = Math.round(maxHr * 0.9);
+  const pulseMs = bpmToDurationMs(
+    heartRate,
+    minHeartRate,
+    maxHeartRate,
+    PULSE_DURATION_SLOW_MS,
+    PULSE_DURATION_FAST_MS,
+  );
+  const ecgMs = bpmToDurationMs(
+    heartRate,
+    minHeartRate,
+    maxHeartRate,
+    ECG_DURATION_SLOW_MS,
+    ECG_DURATION_FAST_MS,
+  );
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
@@ -204,9 +221,7 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
 
       {/* 중앙: 큰 심박수 + 펄스 링 + ECG */}
       <div className="relative flex flex-col items-center gap-1">
-        <PulseRing
-          durationMs={pulseDurationMs(heartRate, minHeartRate, maxHeartRate)}
-        />
+        <PulseRing durationMs={pulseMs} />
         <p className="relative text-8xl leading-none font-extrabold tabular-nums text-foreground">
           {Number.isInteger(displayedHeartRate)
             ? displayedHeartRate
@@ -215,7 +230,7 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
         <p className="relative text-xs font-medium tracking-[0.3em] text-foreground/40">
           BPM
         </p>
-        <HeartRateEcg />
+        <HeartRateEcg durationMs={ecgMs} />
       </div>
 
       {/* Music Sync 상태 + 추천 곡 · 저장 (카드 없이 미니멀한 한 줄) */}
@@ -254,49 +269,56 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
   );
 }
 
-// 심박수 중심에서 은은하게 숨쉬듯 커졌다 작아지는 원형 펄스.
-// scale/opacity만 사용해 GPU 합성으로 처리되고, 실제 레이아웃에는 영향을 주지 않도록
-// absolute + inset으로 숫자 뒤에 겹쳐 놓는다.
+// 심박수 중심에서 은은하게 숨쉬듯 커졌다 작아지는 원형 펄스 두 겹.
+// 안쪽 링은 작고 빠르게, 바깥쪽 링은 조금 더 크고 반 박자 늦게 시작해서
+// 단조로운 단일 블롭 대신 겹쳐 울리는 느낌을 준다. scale/opacity만 사용해
+// GPU 합성으로 처리되고, absolute + inset으로 숫자 뒤에 겹쳐 놓는다.
 function PulseRing({ durationMs }: { durationMs: number }) {
+  const style = { "--workout-pulse-duration": `${durationMs}ms` } as CSSProperties;
   return (
-    <span
-      aria-hidden
-      className="motion-safe:animate-workout-pulse pointer-events-none absolute -inset-8 -z-10 rounded-full bg-accent blur-2xl motion-reduce:opacity-10"
-      style={{ "--workout-pulse-duration": `${durationMs}ms` } as CSSProperties}
-    />
+    <>
+      <span
+        aria-hidden
+        className="motion-safe:animate-workout-pulse pointer-events-none absolute -inset-6 -z-10 rounded-full bg-accent blur-xl motion-reduce:opacity-10"
+        style={style}
+      />
+      <span
+        aria-hidden
+        className="motion-safe:animate-workout-pulse-secondary pointer-events-none absolute -inset-12 -z-10 rounded-full bg-accent blur-2xl motion-reduce:hidden"
+        style={style}
+      />
+    </>
   );
 }
 
-// 왼쪽에서 오른쪽으로 끊김없이 흐르는 ECG 라인. 같은 파형을 두 번 이어붙인 뒤
-// 정확히 한 파형 폭만큼 translateX로 반복 이동시켜 무한 스크롤처럼 보이게 한다.
-function HeartRateEcg() {
-  const tile = "M0,20 L40,20 L50,6 L58,34 L65,14 L72,20 L200,20";
+// 왼쪽에서 오른쪽으로 끊김없이 흐르는 ECG 라인. 서로 살짝 다른 두 파형(A·B)을
+// 번갈아 이어붙여 완전히 똑같은 모양이 반복되지 않게 하고, 그 한 쌍의 폭만큼
+// translateX로 반복 이동시켜 무한 스크롤처럼 보이게 한다. 속도는 심박수에 연결된다.
+function HeartRateEcg({ durationMs }: { durationMs: number }) {
+  const tileA = "M0,20 L40,20 L50,6 L58,34 L65,14 L72,20 L200,20";
+  const tileB = "M0,20 L36,20 L47,11 L56,31 L64,17 L72,20 L200,20";
+  const offsets = [0, 200, 400, 600];
   return (
     <div className="relative mt-2 h-8 w-48 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
       <svg
         aria-hidden
-        viewBox="0 0 400 40"
-        className="motion-safe:animate-workout-ecg-scroll absolute inset-y-0 left-0 h-full w-[400px]"
+        viewBox="0 0 800 40"
+        className="motion-safe:animate-workout-ecg-scroll absolute inset-y-0 left-0 h-full w-[800px]"
+        style={{ "--workout-ecg-duration": `${durationMs}ms` } as CSSProperties}
       >
-        <path
-          d={tile}
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={0.8}
-        />
-        <path
-          d={tile}
-          transform="translate(200,0)"
-          fill="none"
-          stroke="var(--accent)"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={0.8}
-        />
+        {offsets.map((x, i) => (
+          <path
+            key={x}
+            d={i % 2 === 0 ? tileA : tileB}
+            transform={`translate(${x},0)`}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.8}
+          />
+        ))}
       </svg>
     </div>
   );
