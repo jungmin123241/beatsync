@@ -233,8 +233,8 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
         <HeartRateEcg durationMs={ecgMs} />
       </div>
 
-      {/* Music Sync 상태 + 추천 곡 · 저장 (카드 없이 미니멀한 한 줄) */}
-      <div className="flex w-full flex-col items-center gap-3 px-4 text-center">
+      {/* Music Sync 상태 + 추천 곡 (텍스트만, 카드 없이) */}
+      <div className="flex w-full flex-col items-center gap-2 px-4 text-center">
         <div
           className={`text-sm text-accent transition-opacity duration-300 ${
             showChangeNotice ? "opacity-100" : "opacity-0"
@@ -245,19 +245,9 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
 
         <p className="text-sm font-medium text-accent">🎵 {syncStatusText}</p>
 
-        <div className="flex max-w-full items-center gap-3">
-          <p className="max-w-[12rem] truncate text-sm text-foreground/60">
-            {song.title} · {song.artist}
-          </p>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving || saved}
-            className="shrink-0 rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-accent-foreground transition-opacity disabled:opacity-50"
-          >
-            {saved ? "Saved" : saving ? "Saving…" : "Save"}
-          </button>
-        </div>
+        <p className="max-w-[16rem] truncate text-sm text-foreground/60">
+          {song.title} · {song.artist}
+        </p>
 
         {error && (
           <p className="text-xs text-red-400">
@@ -265,6 +255,16 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
           </p>
         )}
       </div>
+
+      {/* 저장 — 운동 종료 버튼과 짝을 이루도록 그 바로 위, 같은 폭으로 배치 */}
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving || saved}
+        className="w-full rounded-full bg-accent py-3 text-sm font-semibold text-accent-foreground transition-opacity disabled:opacity-50"
+      >
+        {saved ? "Saved" : saving ? "Saving…" : "Save"}
+      </button>
     </div>
   );
 }
