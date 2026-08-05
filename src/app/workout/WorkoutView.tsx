@@ -48,13 +48,13 @@ export default function WorkoutView() {
         <section className="flex flex-col items-center gap-2">
           <p className="text-4xl font-bold">❤ -- bpm</p>
         </section>
-        <section className="flex flex-col items-center gap-3 rounded-xl border border-foreground/10 p-5">
-          <p className="text-xs text-foreground/60">🎵 추천 곡</p>
-          <p className="font-medium">추천 곡이 여기에 표시됩니다</p>
+        <section className="flex flex-col items-center gap-4 rounded-xl border border-foreground/10 p-6">
+          <p className="text-sm text-foreground/60">🎵 추천 곡</p>
+          <p className="text-xl font-semibold">추천 곡이 여기에 표시됩니다</p>
           <button
             type="button"
             disabled
-            className="w-full rounded-full bg-foreground py-3 font-medium text-background disabled:opacity-40"
+            className="w-full rounded-full bg-foreground py-3.5 text-lg font-medium text-background disabled:opacity-40"
           >
             저장
           </button>
@@ -126,18 +126,18 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
         </div>
       )}
 
-      <section className="flex flex-col items-center gap-3 rounded-xl border border-foreground/10 p-5">
-        <p className="text-xs text-foreground/60">
+      <section className="flex flex-col items-center gap-4 rounded-xl border border-foreground/10 p-6">
+        <p className="text-sm text-foreground/60">
           🎵 추천 곡 · {workout.playlistName}
         </p>
-        <p className="font-medium">
+        <p className="text-center text-xl font-semibold">
           {song.title} - {song.artist} ({song.bpm}bpm)
         </p>
         <button
           type="button"
           onClick={handleSave}
           disabled={saving || saved}
-          className="w-full rounded-full bg-accent py-3 font-medium text-accent-foreground disabled:opacity-40"
+          className="w-full rounded-full bg-accent py-3.5 text-lg font-medium text-accent-foreground disabled:opacity-40"
         >
           {saved ? "저장됨" : saving ? "저장 중..." : "저장"}
         </button>

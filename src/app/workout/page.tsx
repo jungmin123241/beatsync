@@ -17,12 +17,12 @@ export default async function WorkoutPage() {
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-6 px-6 py-8">
+    <main className="flex flex-1 flex-col justify-center gap-6 px-6 py-8">
       <WorkoutView />
 
       <Link
         href="/setup"
-        className="mt-auto w-full rounded-full border border-foreground/20 py-3 text-center font-medium"
+        className="w-full rounded-full border border-foreground/20 py-3 text-center font-medium"
       >
         운동 종료
       </Link>
