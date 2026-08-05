@@ -148,3 +148,37 @@ body {
       70% 70%;
   }
 }
+
+/*
+ * 운동 화면(WorkoutView) 전용 애니메이션 — 인트로 화면 토큰과는 완전히 분리했다.
+ * 심박수 중심 링 펄스는 "한 번의 심장박동" 주기(60000ms / bpm)에 맞춰 재생 속도가
+ * 바뀐다. 실제 duration 값은 --workout-pulse-duration 커스텀 프로퍼티로 각 요소에서
+ * 인라인으로 덮어쓴다(WorkoutView.tsx). 여기서는 기본값과 애니메이션 형태만 정의한다.
+ */
+@theme inline {
+  --animate-workout-pulse: workout-pulse-breathe var(--workout-pulse-duration, 1.2s)
+    ease-in-out infinite;
+  --animate-workout-ecg-scroll: workout-ecg-scroll 3.2s linear infinite;
+}
+
+@keyframes workout-pulse-breathe {
+  0%,
+  100% {
+    opacity: 0.1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes workout-ecg-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* HeartRateEcg의 SVG 타일 폭(200)만큼 정확히 이동해야 이음매 없이 반복된다 */
+    transform: translateX(-200px);
+  }
+}

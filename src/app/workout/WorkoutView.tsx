@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { getProfile } from "@/lib/profile";
 import { getCurrentWorkout, getWorkouts, type Workout } from "@/lib/workouts";
@@ -44,31 +44,93 @@ export default function WorkoutView() {
 
   if (!ctx) {
     return (
-      <>
-        <section className="flex flex-col items-center gap-2">
-          <p className="text-4xl font-bold">❤ -- bpm</p>
-        </section>
-        <section className="flex flex-col items-center gap-4 rounded-xl border border-foreground/10 p-6">
-          <p className="text-sm text-foreground/60">🎵 추천 곡</p>
-          <p className="text-xl font-semibold">추천 곡이 여기에 표시됩니다</p>
-          <button
-            type="button"
-            disabled
-            className="w-full rounded-full bg-foreground py-3.5 text-lg font-medium text-background disabled:opacity-40"
-          >
-            저장
-          </button>
-        </section>
-      </>
+      <div className="flex flex-col items-center gap-3">
+        <p className="text-8xl leading-none font-extrabold tabular-nums text-foreground/20">
+          --
+        </p>
+        <p className="text-xs tracking-[0.3em] text-foreground/30">BPM</p>
+      </div>
     );
   }
 
   return <WorkoutBody maxHr={ctx.maxHr} workout={ctx.workout} />;
 }
 
+// 숫자가 바뀔 때 즉시 갱신하지 않고, 이전 값에서 새 값까지 부드럽게 흘러가듯
+// 보여준다(예: 142 → 142.5 → 143). ease-out이라 도착 직전에 자연스럽게 감속한다.
+const NUMBER_TWEEN_DURATION_MS = 600;
+
+function useAnimatedNumber(target: number): number {
+  const [display, setDisplay] = useState(target);
+  const fromRef = useRef(target);
+
+  useEffect(() => {
+    const from = fromRef.current;
+    if (from === target) return;
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    let frameId: number;
+    const startTime = performance.now();
+
+    function tick(now: number) {
+      // reduced-motion이면 트윈 없이 첫 프레임에 바로 최종값으로 보여준다
+      const progress = prefersReducedMotion
+        ? 1
+        : Math.min(1, (now - startTime) / NUMBER_TWEEN_DURATION_MS);
+      const eased = 1 - (1 - progress) ** 3; // ease-out cubic, 바운스 없음
+      const value = from + (target - from) * eased;
+
+      if (progress < 1) {
+        setDisplay(Math.round(value * 10) / 10);
+        frameId = requestAnimationFrame(tick);
+      } else {
+        setDisplay(target);
+        fromRef.current = target;
+      }
+    }
+
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [target]);
+
+  return display;
+}
+
+// 심박 펄스 링이 한 번 숨쉬는 데 걸리는 시간을 실제 "심장박동 1회" 주기에 가깝게
+// 계산한다. 다만 브리핑(고요하고 고급스러운 느낌)을 해치지 않도록 너무 빨라지지는
+// 않게 위아래로 값을 눌러준다. min/maxHeartRate는 이 사용자의 가상 심박수가
+// 실제로 오갈 수 있는 범위(useMockHeartRate와 동일한 40~90%)라서, 이 사람 기준으로
+// "지금이 상대적으로 낮은/높은 심박수인지"에 맞춰 속도가 붙는다.
+const PULSE_DURATION_SLOW_MS = 1600;
+const PULSE_DURATION_FAST_MS = 800;
+
+function pulseDurationMs(
+  heartRate: number,
+  minHeartRate: number,
+  maxHeartRate: number,
+): number {
+  if (maxHeartRate <= minHeartRate) return PULSE_DURATION_SLOW_MS;
+  const ratio = (heartRate - minHeartRate) / (maxHeartRate - minHeartRate);
+  const clamped = Math.min(1, Math.max(0, ratio));
+  return (
+    PULSE_DURATION_SLOW_MS -
+    clamped * (PULSE_DURATION_SLOW_MS - PULSE_DURATION_FAST_MS)
+  );
+}
+
+type Trend = "up" | "down" | "flat";
+
 function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
   const heartRate = useMockHeartRate(maxHr);
+  const displayedHeartRate = useAnimatedNumber(heartRate);
   const song = findNearestSong(heartRate, SAMPLE_SONGS);
+
+  // useMockHeartRate와 동일한 계산 — 펄스 속도를 이 사용자의 실제 가능 범위에 맞추기 위함
+  const minHeartRate = Math.round(maxHr * 0.4);
+  const maxHeartRate = Math.round(maxHr * 0.9);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
@@ -90,6 +152,24 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
     const timer = setTimeout(() => setShowChangeNotice(false), 4000);
     return () => clearTimeout(timer);
   }, [song.spotifyTrackId]);
+
+  // 심박수가 직전보다 올랐는지/내렸는지만 본다 — Zone 같은 구간 분류는 아니다
+  // (CLAUDE.md 비범위 규칙에 따라 강도 구간 분류 기능은 만들지 않는다)
+  const [trend, setTrend] = useState<Trend>("flat");
+  const prevHeartRateRef = useRef<number | null>(null);
+  useEffect(() => {
+    const prev = prevHeartRateRef.current;
+    prevHeartRateRef.current = heartRate;
+    if (prev === null || prev === heartRate) return;
+    setTrend(heartRate > prev ? "up" : "down");
+  }, [heartRate]);
+
+  const syncStatusText =
+    trend === "up"
+      ? "Increasing energy"
+      : trend === "down"
+        ? "Recovery mode"
+        : "Syncing with your pace";
 
   const saved =
     justSavedId === song.spotifyTrackId ||
@@ -115,38 +195,109 @@ function WorkoutBody({ maxHr, workout }: { maxHr: number; workout: Workout }) {
   }
 
   return (
-    <>
-      <section className="flex flex-col items-center gap-2">
-        <p className="text-4xl font-bold text-accent">❤ {heartRate} bpm</p>
-      </section>
+    <div className="flex flex-col items-center gap-10">
+      {/* 상단: 작은 상태 표시 */}
+      <div className="flex items-center gap-2 text-xs font-medium tracking-wide text-foreground/50">
+        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+        Monitoring Heart Rate
+      </div>
 
-      {showChangeNotice && (
-        <div className="rounded-lg border border-accent px-4 py-2 text-center text-sm text-accent">
+      {/* 중앙: 큰 심박수 + 펄스 링 + ECG */}
+      <div className="relative flex flex-col items-center gap-1">
+        <PulseRing
+          durationMs={pulseDurationMs(heartRate, minHeartRate, maxHeartRate)}
+        />
+        <p className="relative text-8xl leading-none font-extrabold tabular-nums text-foreground">
+          {Number.isInteger(displayedHeartRate)
+            ? displayedHeartRate
+            : displayedHeartRate.toFixed(1)}
+        </p>
+        <p className="relative text-xs font-medium tracking-[0.3em] text-foreground/40">
+          BPM
+        </p>
+        <HeartRateEcg />
+      </div>
+
+      {/* Music Sync 상태 + 추천 곡 · 저장 (카드 없이 미니멀한 한 줄) */}
+      <div className="flex w-full flex-col items-center gap-3 px-4 text-center">
+        <div
+          className={`text-sm text-accent transition-opacity duration-300 ${
+            showChangeNotice ? "opacity-100" : "opacity-0"
+          }`}
+        >
           ♪ 곡이 바뀌었어요
         </div>
-      )}
 
-      <section className="flex flex-col items-center gap-4 rounded-xl border border-foreground/10 p-6">
-        <p className="text-sm text-foreground/60">
-          🎵 추천 곡 · {workout.playlistName}
-        </p>
-        <p className="text-center text-xl font-semibold">
-          {song.title} - {song.artist} ({song.bpm}bpm)
-        </p>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving || saved}
-          className="w-full rounded-full bg-accent py-3.5 text-lg font-medium text-accent-foreground disabled:opacity-40"
-        >
-          {saved ? "저장됨" : saving ? "저장 중..." : "저장"}
-        </button>
+        <p className="text-sm font-medium text-accent">🎵 {syncStatusText}</p>
+
+        <div className="flex max-w-full items-center gap-3">
+          <p className="max-w-[12rem] truncate text-sm text-foreground/60">
+            {song.title} · {song.artist}
+          </p>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || saved}
+            className="shrink-0 rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-accent-foreground transition-opacity disabled:opacity-50"
+          >
+            {saved ? "Saved" : saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+
         {error && (
-          <p className="text-sm text-red-500">
+          <p className="text-xs text-red-400">
             문제가 발생했어요, 다시 시도해주세요
           </p>
         )}
-      </section>
-    </>
+      </div>
+    </div>
+  );
+}
+
+// 심박수 중심에서 은은하게 숨쉬듯 커졌다 작아지는 원형 펄스.
+// scale/opacity만 사용해 GPU 합성으로 처리되고, 실제 레이아웃에는 영향을 주지 않도록
+// absolute + inset으로 숫자 뒤에 겹쳐 놓는다.
+function PulseRing({ durationMs }: { durationMs: number }) {
+  return (
+    <span
+      aria-hidden
+      className="motion-safe:animate-workout-pulse pointer-events-none absolute -inset-8 -z-10 rounded-full bg-accent blur-2xl motion-reduce:opacity-10"
+      style={{ "--workout-pulse-duration": `${durationMs}ms` } as CSSProperties}
+    />
+  );
+}
+
+// 왼쪽에서 오른쪽으로 끊김없이 흐르는 ECG 라인. 같은 파형을 두 번 이어붙인 뒤
+// 정확히 한 파형 폭만큼 translateX로 반복 이동시켜 무한 스크롤처럼 보이게 한다.
+function HeartRateEcg() {
+  const tile = "M0,20 L40,20 L50,6 L58,34 L65,14 L72,20 L200,20";
+  return (
+    <div className="relative mt-2 h-8 w-48 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
+      <svg
+        aria-hidden
+        viewBox="0 0 400 40"
+        className="motion-safe:animate-workout-ecg-scroll absolute inset-y-0 left-0 h-full w-[400px]"
+      >
+        <path
+          d={tile}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.8}
+        />
+        <path
+          d={tile}
+          transform="translate(200,0)"
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.8}
+        />
+      </svg>
+    </div>
   );
 }
