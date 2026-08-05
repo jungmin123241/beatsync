@@ -22,3 +22,113 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/*
+ * 인트로 화면(로그인 화면) 진입 애니메이션 타임라인 — IntroScreen.tsx에서 사용.
+ * 전체 재생 시간 약 2.8초. 아래 delay 값들이 이 파일 하나에만 있으므로,
+ * 순서를 바꾸고 싶으면 여기 duration/delay만 수정하면 된다.
+ *
+ *   0ms ── logo fade-in-scale (700ms)
+ *   500ms ── heartbeat 라인 draw (700ms, ~1200ms에 완료)
+ *   1150ms ── heartbeat → waveform 크로스페이드 (350~400ms)
+ *   1500ms ── headline fade-up (600ms)
+ *   1550ms ── waveform pulse 루프 시작 (무한)
+ *   1900ms ── description fade-up (500ms)
+ *   2300ms ── button fade-up (500ms, ~2800ms에 완료)
+ */
+@theme inline {
+  --animate-intro-bg-drift: intro-bg-drift 24s ease-in-out infinite alternate;
+  --animate-intro-ring-pulse: intro-ring-pulse 2.6s cubic-bezier(0.16, 1, 0.3, 1) 700ms infinite;
+  --animate-intro-logo: intro-fade-in-scale 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* 심박 라인이 그려진 뒤(500~1200ms) 그대로 페이드아웃(1150~1500ms)되며 웨이브폼과 교차한다 */
+  --animate-intro-ecg: intro-line-draw 700ms cubic-bezier(0.16, 1, 0.3, 1) 500ms both,
+    intro-fade-out 350ms ease-out 1150ms both;
+  --animate-intro-waveform-in: intro-fade-in 400ms ease-out 1150ms both;
+  --animate-intro-waveform-pulse: intro-pulse-scale 1.8s ease-in-out 1550ms infinite;
+  --animate-intro-headline: intro-fade-up 600ms cubic-bezier(0.16, 1, 0.3, 1) 1500ms both;
+  --animate-intro-description: intro-fade-up 500ms cubic-bezier(0.16, 1, 0.3, 1) 1900ms both;
+  --animate-intro-cta: intro-fade-up 500ms cubic-bezier(0.16, 1, 0.3, 1) 2300ms both;
+}
+
+@keyframes intro-fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes intro-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes intro-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes intro-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes intro-line-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes intro-pulse-scale {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@keyframes intro-ring-pulse {
+  0% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+@keyframes intro-bg-drift {
+  from {
+    background-position:
+      20% 20%,
+      80% 80%;
+  }
+  to {
+    background-position:
+      30% 30%,
+      70% 70%;
+  }
+}

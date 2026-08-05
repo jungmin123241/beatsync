@@ -1,26 +1,14 @@
 import { signIn } from "@/auth";
+import IntroScreen from "./IntroScreen";
 
 // ① 로그인 화면 — DESIGN.md "1. 화면 구성 - ①" 참고
-// Spotify 로그인은 서버 액션으로 처리 (버튼 클릭 → Auth.js가 Spotify 인증 화면으로 이동)
-export default function LoginPage() {
-  return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-10 px-6 text-center">
-      <h1 className="text-3xl font-bold tracking-tight">BeatSync</h1>
+// 화면 자체는 IntroScreen(클라이언트 컴포넌트)이 그리고, 이 서버 컴포넌트는
+// Spotify 로그인 서버 액션만 만들어서 넘긴다.
+async function handleGetStarted() {
+  "use server";
+  await signIn("spotify", { redirectTo: "/setup" });
+}
 
-      <form
-        action={async () => {
-          "use server";
-          await signIn("spotify", { redirectTo: "/setup" });
-        }}
-        className="w-full"
-      >
-        <button
-          type="submit"
-          className="w-full rounded-full bg-accent py-3 font-medium text-accent-foreground"
-        >
-          Spotify로 시작하기
-        </button>
-      </form>
-    </main>
-  );
+export default function LoginPage() {
+  return <IntroScreen onGetStarted={handleGetStarted} />;
 }
